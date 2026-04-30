@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#C62828">
+<title>Botón de Pánico</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --red: #C62828;
+    --red-dark: #8E0000;
+    --red-light: #FFEBEE;
+    --green: #2E7D32;
+    --gray-900: #1A1A1A;
+    --gray-700: #616161;
+    --gray-200: #E0E0E0;
+    --gray-100: #F5F5F5;
+    --white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    line-height: 1.5;
+    overscroll-behavior: none;
+    min-height: 100vh;
+  }
+
+  /* ── PANTALLAS ── */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  .screen.active { display: block; }
+
+  /* ── LOGIN ── */
+  .login-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 100%);
+    color: white;
+  }
+  .login-screen.active { display: flex; }
+
+  .login-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .login-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 3rem;
+  }
+
+  #googleSignInBtn {
+    margin-bottom: 1rem;
+  }
+
+  .login-loading {
+    display: none;
+    margin-top: 1rem;
+    color: white;
+    font-size: 0.9rem;
+  }
+
+  .login-error {
+    display: none;
+    margin-top: 1rem;
+    background: rgba(0,0,0,0.3);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    max-width: 400px;
+  }
+
+  /* ── PANTALLA PRINCIPAL ── */
+  .header {
+    background: var(--gray-900);
+    color: white;
+    padding: 1rem 1.5rem;
+    margin: -1.5rem -1.5rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .header-user {
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .logout-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .form-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .form-label.required::after {
+    content: ' *';
+    color: var(--red);
+  }
+
+  /* ── BOTONES DE TIPO EMERGENCIA ── */
+  .emergency-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .emergency-btn {
+    background: var(--gray-100);
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 1rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-900);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .emergency-btn:active {
+    transform: scale(0.97);
+  }
+
+  .emergency-btn.selected {
+    background: var(--red-light);
+    border-color: var(--red);
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  /* ── DROPDOWN LUGAR ── */
+  .lugar-select {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23616161'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.5rem;
+  }
+
+  /* ── TEXTAREA NOTA ── */
+  .nota-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+  }
+
+  /* ── BOTÓN ENVIAR ── */
+  .submit-btn {
+    width: 100%;
+    background: var(--red);
+    background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(198,40,40,0.3);
+    margin-top: 1rem;
+    transition: transform 0.15s;
+  }
+
+  .submit-btn:active {
+    transform: scale(0.98);
+  }
+
+  .submit-btn:disabled {
+    background: var(--gray-200);
+    color: var(--gray-700);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ── CONFIRMACIÓN ── */
+  .confirmation-screen {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
+    color: white;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  .confirmation-screen.active { display: flex; }
+
+  .confirmation-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+  }
+
+  .confirmation-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .confirmation-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    max-width: 400px;
+  }
+
+  .confirmation-phone {
+    background: rgba(255,255,255,0.2);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .confirmation-back {
+    background: white;
+    color: var(--green);
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── LOADING SPINNER ── */
+  .spinner {
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── ERROR TOAST ── */
+  .error-toast {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--red);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+    max-width: 90%;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen" class="screen login-screen active">
+  <div class="login-icon">🚨</div>
+  <div class="login-title">BOTÓN<br>DE<br>PÁNICO</div>
+  <div id="googleSignInBtn"></div>
+  <div id="loginLoading" class="login-loading">
+    <span class="spinner"></span> Validando acceso...
+  </div>
+  <div id="loginError" class="login-error"></div>
+</div>
+
+<!-- ═══ PANTALLA PRINCIPAL ═══ -->
+<div id="mainScreen" class="screen">
+  <div class="header">
+    <div>
+      <div class="header-title">🚨 BOTÓN DE PÁNICO</div>
+      <div class="header-user" id="userName"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+
+  <div class="form-section">
+    <label class="form-label required">Tipo de Emergencia</label>
+    <div class="emergency-grid" id="emergencyGrid">
+      <button class="emergency-btn" data-tipo="Incendio">🔥 Incendio</button>
+      <button class="emergency-btn" data-tipo="Emergencia Médica">🚑 Médica</button>
+      <button class="emergency-btn" data-tipo="Amenaza/Intrusión">⚠️ Intrusión</button>
+      <button class="emergency-btn" data-tipo="Desastre Natural">🌪️ Desastre</button>
+      <button class="emergency-btn" data-tipo="Fuga de Gas">💨 Fuga Gas</button>
+      <button class="emergency-btn" data-tipo="Accidente Vehicular">🚗 Accidente</button>
+      <button class="emergency-btn" data-tipo="Robo/Asalto">🚨 Robo</button>
+      <button class="emergency-btn" data-tipo="Otra Emergencia">❓ Otra</button>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <label class="form-label required" for="lugarSelect">Lugar de la Emergencia</label>
+    <select id="lugarSelect" class="lugar-select">
+      <option value="">Seleccionar lugar...</option>
+    </select>
+  </div>
+
+  <div class="form-section">
+    <label class="form-label" for="notaInput">Nota (opcional)</label>
+    <textarea id="notaInput" class="nota-input" placeholder="Detalles adicionales..."></textarea>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="enviarAlerta()">
+    🚨 ENVIAR ALERTA
+  </button>
+</div>
+
+<!-- ═══ CONFIRMACIÓN ═══ -->
+<div id="confirmationScreen" class="confirmation-screen">
+  <div class="confirmation-icon">✅</div>
+  <div class="confirmation-title">Alerta Enviada</div>
+  <div class="confirmation-text">
+    Su alerta ha sido notificada exitosamente. Lo llamarán en breve, por favor mantenga la línea desocupada.
+  </div>
+  <div class="confirmation-phone" id="confirmationPhone"></div>
+  <button class="confirmation-back" onclick="volverInicio()">Entendido</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIGURACIÓN — EDITAR CON TUS DATOS
+// ═══════════════════════════════════════════════
+
+const CONFIG = {
+  GOOGLE_CLIENT_ID: '212701944710-iahvd45fa59qtvgg4ujt8q69qohocd2i.apps.googleusercontent.com',
+  APPS_SCRIPT_URL: 'https://script.google.com/a/macros/dorcocapital.com/s/AKfycby1Ww4Dtxn7twKUCZUTIPB_QLCFLvK4C6Nhdu2RdvVb7pc-zXZfoAMEGIE_J_fIs9U/exec',
+  WEBHOOK_URL: 'https://hook.us2.make.com/tu258uker79f8p2uimtjwf9dah3croe7'
+};
+
+let currentUser = null;
+
+// ═══════════════════════════════════════════════
+// LOGIN CON GOOGLE
+// ═══════════════════════════════════════════════
+
+window.onload = () => {
+  google.accounts.id.initialize({
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    callback: handleGoogleLogin,
+    auto_select: false
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    { theme: 'filled_blue', size: 'large', text: 'signin_with', shape: 'pill' }
+  );
+};
+
+async function handleGoogleLogin(response) {
+  const loadingEl = document.getElementById('loginLoading');
+  const errorEl = document.getElementById('loginError');
+  const btnEl = document.getElementById('googleSignInBtn');
+  
+  btnEl.style.display = 'none';
+  errorEl.style.display = 'none';
+  loadingEl.style.display = 'block';
+
+  // Decodificar JWT para obtener email
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const email = payload.email;
+
+  try {
+    // Validar contra Apps Script
+    const url = `${CONFIG.APPS_SCRIPT_URL}?action=validateUser&email=${encodeURIComponent(email)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('qrf_user', JSON.stringify(currentUser));
+      await cargarLugares();
+      mostrarPantalla('mainScreen');
+      document.getElementById('userName').textContent = `${currentUser.nombre} • ${currentUser.rol}`;
+    } else {
+      showLoginError(data.error || 'No tienes acceso');
+    }
+  } catch (err) {
+    showLoginError('Error al validar acceso. Intenta nuevamente.');
+    console.error(err);
+  }
+}
+
+function showLoginError(msg) {
+  document.getElementById('loginLoading').style.display = 'none';
+  document.getElementById('googleSignInBtn').style.display = 'block';
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = msg;
+  errorEl.style.display = 'block';
+}
+
+function logout() {
+  localStorage.removeItem('qrf_user');
+  currentUser = null;
+  google.accounts.id.disableAutoSelect();
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════
+// CARGAR LUGARES
+// ═══════════════════════════════════════════════
+
+async function cargarLugares() {
+  try {
+    const url = `${CONFIG.APPS_SCRIPT_URL}?action=getLugares`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.success && data.lugares) {
+      const select = document.getElementById('lugarSelect');
+      select.innerHTML = '<option value="">Seleccionar lugar...</option>';
+      data.lugares.forEach(lugar => {
+        const opt = document.createElement('option');
+        opt.value = lugar;
+        opt.textContent = lugar;
+        select.appendChild(opt);
+      });
+    }
+  } catch (err) {
+    console.error('Error cargando lugares:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SELECCIÓN DE TIPO DE EMERGENCIA
+// ═══════════════════════════════════════════════
+
+let tipoSeleccionado = null;
+
+document.getElementById('emergencyGrid').addEventListener('click', (e) => {
+  const btn = e.target.closest('.emergency-btn');
+  if (!btn) return;
+  
+  document.querySelectorAll('.emergency-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  tipoSeleccionado = btn.dataset.tipo;
+});
+
+// ═══════════════════════════════════════════════
+// ENVIAR ALERTA
+// ═══════════════════════════════════════════════
+
+async function enviarAlerta() {
+  const lugar = document.getElementById('lugarSelect').value;
+  const nota = document.getElementById('notaInput').value;
+
+  // Validaciones
+  if (!tipoSeleccionado) {
+    showToast('Selecciona un tipo de emergencia');
+    return;
+  }
+  if (!lugar) {
+    showToast('Selecciona un lugar');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span> Enviando...';
+
+  try {
+    // Capturar GPS
+    const position = await getGeolocation();
+    
+    // Generar ID y timestamp
+    const alertaId = Math.random().toString(36).substring(2, 10);
+    const timestamp = new Date().toLocaleString('es-CL', { 
+      timeZone: 'America/Santiago',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
+    // Construir mapeos de tipo → icono y prioridad
+    const iconos = {
+      'Incendio': '🔥',
+      'Emergencia Médica': '🚑',
+      'Amenaza/Intrusión': '⚠️',
+      'Desastre Natural': '🌪️',
+      'Fuga de Gas': '💨',
+      'Accidente Vehicular': '🚗',
+      'Robo/Asalto': '🚨',
+      'Otra Emergencia': '❓'
+    };
+
+    const prioridades = {
+      'Incendio': 'CRÍTICA',
+      'Emergencia Médica': 'CRÍTICA',
+      'Amenaza/Intrusión': 'CRÍTICA',
+      'Desastre Natural': 'ALTA',
+      'Fuga de Gas': 'CRÍTICA',
+      'Accidente Vehicular': 'ALTA',
+      'Robo/Asalto': 'CRÍTICA',
+      'Otra Emergencia': 'MEDIA'
+    };
+
+    // Construir payload
+    const payload = {
+      alerta_id: alertaId,
+      timestamp: timestamp,
+      emisor: {
+        email: currentUser.email,
+        nombre: currentUser.nombre,
+        rol: currentUser.rol,
+        telefono: currentUser.telefono
+      },
+      emergencia: {
+        lugar: lugar,
+        tipo: tipoSeleccionado,
+        icono: iconos[tipoSeleccionado] || '❓',
+        prioridad: prioridades[tipoSeleccionado] || 'MEDIA',
+        nota: nota
+      },
+      ubicacion: {
+        latitud: position.coords.latitude.toFixed(6),
+        longitud: position.coords.longitude.toFixed(6),
+        link_maps: `https://maps.google.com/?q=${position.coords.latitude},${position.coords.longitude}`
+      },
+      estado: 'Enviada'
+    };
+
+    // Enviar a Make.com
+    const res = await fetch(CONFIG.WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Error en webhook');
+
+    // Mostrar confirmación
+    document.getElementById('confirmationPhone').textContent = currentUser.telefono;
+    mostrarPantalla('confirmationScreen');
+    
+    // Reset form
+    tipoSeleccionado = null;
+    document.querySelectorAll('.emergency-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('lugarSelect').value = '';
+    document.getElementById('notaInput').value = '';
+
+  } catch (err) {
+    console.error(err);
+    showToast('Error al enviar la alerta. Intenta nuevamente.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '🚨 ENVIAR ALERTA';
+  }
+}
+
+function getGeolocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS no disponible'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      err => reject(new Error('No se pudo obtener la ubicación: ' + err.message)),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+function volverInicio() {
+  mostrarPantalla('mainScreen');
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+
+function mostrarPantalla(id) {
+  document.querySelectorAll('.screen, .confirmation-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.error-toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ═══════════════════════════════════════════════
+// AUTO-LOGIN si hay sesión guardada
+// ═══════════════════════════════════════════════
+
+const savedUser = localStorage.getItem('qrf_user');
+if (savedUser) {
+  currentUser = JSON.parse(savedUser);
+  cargarLugares().then(() => {
+    mostrarPantalla('mainScreen');
+    document.getElementById('userName').textContent = `${currentUser.nombre} • ${currentUser.rol}`;
+  });
+}
+</script>
+
+</body>
+</html>
