@@ -33,24 +33,35 @@
   }
 
   /* ── PANTALLAS ── */
-  .screen {
-    display: none;
+  .screen, .confirmation-screen {
+    display: none !important;
     min-height: 100vh;
     padding: 1.5rem;
   }
-  .screen.active { display: block; }
-
-  /* ── LOGIN ── */
-  .login-screen {
-    display: flex;
+  .screen.active {
+    display: block !important;
+  }
+  .login-screen.active {
+    display: flex !important;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
+  }
+  .confirmation-screen.active {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  /* ── LOGIN ── */
+  .login-screen {
     background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 100%);
     color: white;
   }
-  .login-screen.active { display: flex; }
 
   .login-icon {
     font-size: 5rem;
@@ -236,17 +247,9 @@
 
   /* ── CONFIRMACIÓN ── */
   .confirmation-screen {
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
     background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
     color: white;
-    padding: 2rem;
-    min-height: 100vh;
   }
-  .confirmation-screen.active { display: flex; }
 
   .confirmation-icon {
     font-size: 5rem;
@@ -637,7 +640,12 @@ function volverInicio() {
 // ═══════════════════════════════════════════════
 
 function mostrarPantalla(id) {
-  document.querySelectorAll('.screen, .confirmation-screen').forEach(s => s.classList.remove('active'));
+  // Ocultar todas las pantallas (incluyendo login)
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('confirmationScreen').classList.remove('active');
+  
+  // Mostrar solo la solicitada
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
 }
