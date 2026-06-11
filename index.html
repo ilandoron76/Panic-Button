@@ -395,7 +395,7 @@
 
 const CONFIG = {
   GOOGLE_CLIENT_ID: '361964757060-e6lviqif38opagis68kndsp7ltjra48e.apps.googleusercontent.com',
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwhYk3Rxbhbghv139htRfnj6CoaVnovoV9uWae_HZwr1bBV_SevtgH9ygI7G5xRmSdKxA/exec',
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz98GJNImE4__mKE2feszn3GrJ6aZuYxFW0cX2NnJdeaHi-sS_UqE-XB-Hk9t4EzHxFQQ/exec',
   WEBHOOK_URL: 'https://hook.us2.make.com/ptx57g32ljhr38az9h8ews8v7ba7fngx'
 };
 
@@ -480,10 +480,14 @@ async function cargarLugares() {
     if (data.success && data.lugares) {
       const select = document.getElementById('lugarSelect');
       select.innerHTML = '<option value="">Seleccionar lugar...</option>';
-      data.lugares.forEach(lugar => {
+      data.lugares.forEach(item => {
+        // Compatible con formato viejo (string) y nuevo (objeto {nombre, direccion})
+        const nombre = typeof item === 'string' ? item : item.nombre;
+        const direccion = typeof item === 'string' ? '' : (item.direccion || '');
         const opt = document.createElement('option');
-        opt.value = lugar;
-        opt.textContent = lugar;
+        opt.value = nombre;
+        opt.textContent = nombre;
+        opt.dataset.direccion = direccion;
         select.appendChild(opt);
       });
     }
@@ -512,7 +516,11 @@ document.getElementById('emergencyGrid').addEventListener('click', (e) => {
 // ═══════════════════════════════════════════════
 
 async function enviarAlerta() {
-  const lugar = document.getElementById('lugarSelect').value;
+  const lugarSelect = document.getElementById('lugarSelect');
+  const lugar = lugarSelect.value;
+  const direccion = lugarSelect.options[lugarSelect.selectedIndex]
+    ? (lugarSelect.options[lugarSelect.selectedIndex].dataset.direccion || '')
+    : '';
   const nota = document.getElementById('notaInput').value;
 
   // Validaciones
@@ -576,6 +584,7 @@ async function enviarAlerta() {
       },
       emergencia: {
         lugar: lugar,
+        "dirección": direccion,
         tipo: tipoSeleccionado,
         icono: iconos[tipoSeleccionado] || '❓',
         prioridad: prioridades[tipoSeleccionado] || 'MEDIA',
